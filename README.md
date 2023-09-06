@@ -134,6 +134,7 @@ cd /app/RIAD/riad
 ```
 
 c) Run experiments
+執行這行有可能會出問題，如果將裡面的script複製出來一行一行執行就沒問題，奇怪的BUG
 ```
 sh run.sh
 ```
