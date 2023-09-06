@@ -1,0 +1,282 @@
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+  hydra_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][HYDRA] %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+    root:
+      level: INFO
+      handlers:
+      - console
+    loggers:
+      logging_example:
+        level: DEBUG
+    disable_existing_loggers: false
+  job_logging:
+    version: 1
+    formatters:
+      simple:
+        format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+      file:
+        class: logging.FileHandler
+        formatter: simple
+        filename: ${hydra.job.name}.log
+    root:
+      level: INFO
+      handlers:
+      - console
+      - file
+    disable_existing_loggers: false
+  sweeper:
+    _target_: hydra._internal.core_plugins.basic_sweeper.BasicSweeper
+    max_batch_size: null
+  launcher:
+    _target_: hydra._internal.core_plugins.basic_launcher.BasicLauncher
+  help:
+    app_name: ${hydra.job.name}
+    header: '${hydra.help.app_name} is powered by Hydra.
+
+      '
+    footer: 'Powered by Hydra (https://hydra.cc)
+
+      Use --hydra-help to view Hydra specific help
+
+      '
+    template: '${hydra.help.header}
+
+      == Configuration groups ==
+
+      Compose your configuration from those groups (group=option)
+
+
+      $APP_CONFIG_GROUPS
+
+
+      == Config ==
+
+      Override anything in the config (foo.bar=value)
+
+
+      $CONFIG
+
+
+      ${hydra.help.footer}
+
+      '
+  hydra_help:
+    hydra_help: ???
+    template: 'Hydra (${hydra.runtime.version})
+
+      See https://hydra.cc for more info.
+
+
+      == Flags ==
+
+      $FLAGS_HELP
+
+
+      == Configuration groups ==
+
+      Compose your configuration from those groups (For example, append hydra/job_logging=disabled
+      to command line)
+
+
+      $HYDRA_CONFIG_GROUPS
+
+
+      Use ''--cfg hydra'' to Show the Hydra config.
+
+      '
+  output_subdir: .hydra
+  overrides:
+    hydra: []
+    task:
+    - params.cross_validation=0,1,2,3,4
+    - params.category=grid
+  job:
+    name: run
+    override_dirname: params.category=grid,params.cross_validation=0,1,2,3,4
+    id: ???
+    num: ???
+    config_name: mvtec.yaml
+    env_set: {}
+    env_copy: []
+    config:
+      override_dirname:
+        kv_sep: '='
+        item_sep: ','
+        exclude_keys: []
+  runtime:
+    version: 1.0.5
+    cwd: /workspaces/RIAD/riad
+  verbose: false
+params:
+  epochs: 300
+  device: cuda:0
+  cutout_sizes:
+  - 2
+  - 4
+  - 8
+  - 16
+  num_disjoint_masks: 3
+  category: grid
+  height: 256
+  width: 256
+  cross_validation: 0
+  batch_size: 4
+  experiment_name: mvtec
+  run_name: ${params.category}_cv${params.cross_validation}
+model:
+  name: models - UNet
+  args: null
+transforms:
+  train:
+  - name: albumentations - Resize
+    args:
+      height: ${params.height}
+      width: ${params.width}
+      p: 1
+  - name: albumentations - Normalize
+    args:
+      mean:
+      - 0.5
+      - 0.5
+      - 0.5
+      std:
+      - 0.5
+      - 0.5
+      - 0.5
+      p: 1
+  - name: albumentations.pytorch - ToTensorV2
+    args:
+      p: 1
+  val:
+  - name: albumentations - Resize
+    args:
+      height: ${params.height}
+      width: ${params.width}
+      p: 1
+  - name: albumentations - Normalize
+    args:
+      mean:
+      - 0.5
+      - 0.5
+      - 0.5
+      std:
+      - 0.5
+      - 0.5
+      - 0.5
+      p: 1
+  - name: albumentations.pytorch - ToTensorV2
+    args:
+      p: 1
+  test:
+  - name: albumentations - Resize
+    args:
+      height: ${params.height}
+      width: ${params.width}
+      p: 1
+  - name: albumentations - Normalize
+    args:
+      mean:
+      - 0.5
+      - 0.5
+      - 0.5
+      std:
+      - 0.5
+      - 0.5
+      - 0.5
+      p: 1
+  - name: albumentations.pytorch - ToTensorV2
+    args:
+      p: 1
+datasets:
+  train:
+    name: datasets - MVTecDataset
+    args:
+      data_dir: /data
+      query_list:
+      - cv${params.cross_validation}=='train' & category=='${params.category}'
+      debug: false
+  val:
+    name: datasets - MVTecDataset
+    args:
+      data_dir: /data
+      query_list:
+      - cv${params.cross_validation}=='val' & category=='${params.category}'
+      debug: false
+  test:
+    name: datasets - MVTecDataset
+    args:
+      data_dir: /data
+      query_list:
+      - cv${params.cross_validation}=='test' & category=='${params.category}'
+      debug: false
+dataloaders:
+  train:
+    name: torch.utils.data - DataLoader
+    args:
+      batch_size: ${params.batch_size}
+      num_workers: ${params.batch_size}
+      pin_memory: true
+      shuffle: true
+  val:
+    name: torch.utils.data - DataLoader
+    args:
+      batch_size: ${params.batch_size}
+      num_workers: ${params.batch_size}
+      pin_memory: true
+      shuffle: true
+  test:
+    name: torch.utils.data - DataLoader
+    args:
+      batch_size: ${params.batch_size}
+      num_workers: ${params.batch_size}
+      pin_memory: true
+      shuffle: true
+optimizer:
+  name: torch.optim - Adam
+  args:
+    lr: 0.0001
+    weight_decay: 1.0e-05
+scheduler:
+  name: torch.optim.lr_scheduler - CosineAnnealingWarmRestarts
+  args:
+    T_0: 10
+    T_mult: 2
+    eta_min: 0.0001
+    last_epoch: -1
+criterions:
+  MSGMS:
+    name: criterions - MSGMSLoss
+    args:
+      num_scales: 4
+  SSIM:
+    name: criterions - SSIMLoss
+    args:
+      kernel_size: 11
+      sigma: 1.5
+  MSE:
+    name: torch.nn - MSELoss
+    args:
+      reduction: mean
+early_stopping:
+  name: utils - EarlyStopping
+  args:
+    patience: 20
+    delta: 0

@@ -13,7 +13,7 @@ from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 
-from riad.utils import EarlyStopping
+from utils import EarlyStopping
 
 
 class BaseRunner(ABC):

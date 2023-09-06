@@ -6,7 +6,7 @@ import hydra
 import mlflow
 from omegaconf import DictConfig
 
-from riad.runner import Runner
+from runner import Runner
 
 
 log = logging.getLogger(__name__)

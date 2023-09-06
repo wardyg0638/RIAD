@@ -9,9 +9,9 @@ import torch
 from numpy import ndarray as NDArray
 from torch import Tensor
 
-from riad.metrics import compute_auroc
-from riad.runner import BaseRunner
-from riad.utils import mean_smoothing, savefig
+from metrics import compute_auroc
+from runner import BaseRunner
+from utils import mean_smoothing, savefig
 
 
 class Runner(BaseRunner):
